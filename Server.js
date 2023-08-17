@@ -7,15 +7,16 @@ const cors = require('cors')
 const mongoose = require('mongoose')
 const UserModel = require("./models/Users")
 const pako = require('pako')
+const Axios = require('axios')
 app.set("trust proxy", 1)
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json({limit: '50mb'}))
 require('dotenv').config()
-const RAND = process.env.RAND
+const RAND = process.env.MONG_URI
 mongoose.connect(RAND)
 const MongoStore = require('connect-mongodb-session')(session)
 let sessionStore = new MongoStore({
-    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority'
+    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority'
     collection: 'info'
 })
 
@@ -37,17 +38,36 @@ app.use(session({
 }))
 app.use(express.json())
 app.use(cors({
-    origin: 'http://localhost:3000',//https://f-uyu.github.io',
+    origin: 'https://f-uyu.github.io', //'http://localhost:3000'
     credentials: true
 }))
 
 //websocket-------------
-
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const clients = new Map();
+const matchmake = new Map()
 io.on('connection', (socket) => {
   console.log('A new client connected');
+  socket.on('matchmaking', (data) => {
+    matchmake.set(data.id, socket)
+    console.log(matchmake.size)
+    if (matchmake.size >= 2){
+      const keysArray = Array.from(matchmake.keys())
+      const first = keysArray[0]
+      const second = keysArray[1]
+      Axios.get('https://us-lax-97d18217.colyseus.cloud').then((response) => {
+        const firstsocket = matchmake.get(first)
+        const secondsocket = matchmake.get(second)
+        firstsocket.emit('matched', {data: response.data.roomId})
+        secondsocket.emit('matched', {data: response.data.roomId})
+        matchmake.delete(first)
+        matchmake.delete(second)
+        console.log(matchmake.size)
+      })
+      
+    }
+  })
   socket.on('register', ({userId, status}) => {
     io.emit('updateCanvas')
   })
