@@ -26,7 +26,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: sessionStore,
-  /*proxy: true,
+  proxy: true,
     cookie:{
         secure: true,
         maxAge: 1000 * 60 * 60 * 48,
@@ -34,7 +34,7 @@ app.use(session({
         sameSite: 'none',
         //sameSite: 'none',
         //domain: '.uw.r.appspot.com'
-    }*/
+    }
 }))
 app.use(express.json())
 app.use(cors({
@@ -51,19 +51,17 @@ io.on('connection', (socket) => {
   console.log('A new client connected');
   socket.on('matchmaking', (data) => {
     matchmake.set(data.id, socket)
-    console.log(matchmake.size)
     if (matchmake.size >= 2){
       const keysArray = Array.from(matchmake.keys())
       const first = keysArray[0]
       const second = keysArray[1]
-      Axios.get('https://us-lax-97d18217.colyseus.cloud').then((response) => {
+      Axios.get('https://us-lax-97d18217.colyseus.cloud/hello_world').then((response) => {
         const firstsocket = matchmake.get(first)
         const secondsocket = matchmake.get(second)
         firstsocket.emit('matched', {data: response.data.roomId})
         secondsocket.emit('matched', {data: response.data.roomId})
         matchmake.delete(first)
         matchmake.delete(second)
-        console.log(matchmake.size)
       })
       
     }
