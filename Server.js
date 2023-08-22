@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
       const keysArray = Array.from(matchmake.keys())
       const first = keysArray[0]
       const second = keysArray[1]
-      Axios.get('http://localhost:2567/hello_world').then((response) => {
+      Axios.get('https://us-lax-97d18217.colyseus.cloud/hello_world').then((response) => {
         const firstsocket = matchmake.get(first)
         const secondsocket = matchmake.get(second)
         firstsocket.emit('matched', {data: response.data.roomId})
