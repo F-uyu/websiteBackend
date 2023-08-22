@@ -12,11 +12,11 @@ app.set("trust proxy", 1)
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json({limit: '50mb'}))
 require('dotenv').config()
-const RAND = process.env.RAND
+const RAND = process.env.MONG_URI
 mongoose.connect(RAND)
 const MongoStore = require('connect-mongodb-session')(session)
 let sessionStore = new MongoStore({
-    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority'
+    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority'
     collection: 'info'
 })
 
@@ -26,7 +26,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: sessionStore,
-  /*proxy: true,
+  proxy: true,
     cookie:{
         secure: true,
         maxAge: 1000 * 60 * 60 * 48,
@@ -34,11 +34,11 @@ app.use(session({
         sameSite: 'none',
         //sameSite: 'none',
         //domain: '.uw.r.appspot.com'
-    }*/
+    }
 }))
 app.use(express.json())
 app.use(cors({
-    origin: 'http://localhost:3000', //'https://f-uyu.github.io'
+    origin: 'https://f-uyu.github.io', //'http://localhost:3000'
     credentials: true
 }))
 
