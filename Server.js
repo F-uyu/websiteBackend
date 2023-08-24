@@ -16,7 +16,7 @@ const RAND = process.env.MONG_URI
 mongoose.connect(RAND)
 const MongoStore = require('connect-mongodb-session')(session)
 let sessionStore = new MongoStore({
-    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority'
+    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority',
     collection: 'info'
 })
 
@@ -50,7 +50,7 @@ const matchmake = new Map()
 io.on('connection', (socket) => {
   console.log('A new client connected');
   socket.on('matchmaking', (data) => {
-    matchmake.set(data.id, socket)
+    matchmake.set({data: data.id, name: data.name, pic: data.pic}, socket)
     console.log(matchmake.size)
     if (matchmake.size >= 2){
       const keysArray = Array.from(matchmake.keys())
@@ -59,8 +59,8 @@ io.on('connection', (socket) => {
       Axios.get('https://us-lax-97d18217.colyseus.cloud/hello_world').then((response) => {
         const firstsocket = matchmake.get(first)
         const secondsocket = matchmake.get(second)
-        firstsocket.emit('matched', {data: response.data.roomId})
-        secondsocket.emit('matched', {data: response.data.roomId})
+        firstsocket.emit('matched', {data: response.data.roomId, opponent: second.name, this: first.pic, other: second.pic})
+        secondsocket.emit('matched', {data: response.data.roomId, opponent: first.name, this: second.pic, other: first.pic})
         matchmake.delete(first)
         matchmake.delete(second)
         console.log(matchmake.size)
@@ -96,10 +96,11 @@ app.post("/login", async (req, res, next) => {
   //console.log(req.sessionID)
   const {username, password} = req.body
   let user = await UserModel.findOne({username: username, password: password})
+  console.log(user)
   const id = user._id.toString()
   req.session.userId = id
   req.session.userName = username
-  req.session.picture = ""
+  req.session.picture = user.profilePicture
   req.session.qr = ""
   req.session.online = true
   res.send(id)
@@ -109,7 +110,7 @@ app.post("/login", async (req, res, next) => {
 
 app.get("/currentuser", async (req, res) => {
   if (req.session.userId){
-    res.send(req.session.userId)
+    res.send(req.session)
   }
   else{
     res.end()
