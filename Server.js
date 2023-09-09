@@ -6,17 +6,18 @@ const session = require('express-session')
 const cors = require('cors')
 const mongoose = require('mongoose')
 const UserModel = require("./models/Users")
+const UserModelActive = require("./models/ActiveUsers")
 const pako = require('pako')
 const Axios = require('axios')
 app.set("trust proxy", 1)
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json({limit: '50mb'}))
 require('dotenv').config()
-const RAND = process.env.MONG_URI
+const RAND = process.env.RAND
 mongoose.connect(RAND)
 const MongoStore = require('connect-mongodb-session')(session)
 let sessionStore = new MongoStore({
-    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority',
+    uri: 'mongodb+srv://Fuyu:Slayer24@cluster0.7sujvda.mongodb.net/listofusers?retryWrites=true&w=majority', //'mongodb+srv://Fuyu:Slayer24@cluster0-pri.7sujvda.mongodb.net/info?retryWrites=true&w=majority'
     collection: 'info'
 })
 
@@ -26,7 +27,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: sessionStore,
-  proxy: true,
+  /*proxy: true,
     cookie:{
         secure: true,
         maxAge: 1000 * 60 * 60 * 48,
@@ -34,11 +35,11 @@ app.use(session({
         sameSite: 'none',
         //sameSite: 'none',
         //domain: '.uw.r.appspot.com'
-    }
+    }*/
 }))
 app.use(express.json())
 app.use(cors({
-    origin: 'https://f-uyu.github.io', //'http://localhost:3000'
+    origin: 'http://localhost:3000', //'https://f-uyu.github.io'
     credentials: true
 }))
 
@@ -56,7 +57,7 @@ io.on('connection', (socket) => {
       const keysArray = Array.from(matchmake.keys())
       const first = keysArray[0]
       const second = keysArray[1]
-      Axios.get('https://us-lax-97d18217.colyseus.cloud/hello_world').then((response) => {
+      Axios.get('http://localhost:2567/hello_world').then((response) => {
         const firstsocket = matchmake.get(first)
         const secondsocket = matchmake.get(second)
         firstsocket.emit('matched', {data: response.data.roomId, opponent: second.name, this: first.pic, other: second.pic})
@@ -68,10 +69,11 @@ io.on('connection', (socket) => {
     }
   })
   socket.on('register', ({userId, status}) => {
-    io.emit('updateCanvas')
+    io.emit('live')
   })
   socket.on('login', ({id}) => {
     clients.set(id, socket);
+    //io.emit('live', [...clients.keys()]); 
   });
 
   socket.on('out', (data) => {
@@ -79,6 +81,7 @@ io.on('connection', (socket) => {
     if (clients.has(data)) {
       clients.delete(data);
     }
+    //io.emit('leave', [...clients.keys()]); 
   });
 });
 
@@ -96,7 +99,6 @@ app.post("/login", async (req, res, next) => {
   //console.log(req.sessionID)
   const {username, password} = req.body
   let user = await UserModel.findOne({username: username, password: password})
-  console.log(user)
   const id = user._id.toString()
   req.session.userId = id
   req.session.userName = username
@@ -139,7 +141,26 @@ app.get("/getUsers", async (req, res, next) => {
   res.send(data)
 })
 
+//is active user
+app.post("/isactive", async (req, res) => {
+  const user = req.body
+  const newUser = new UserModelActive(user)
+  await newUser.save()
+  req.session.active = newUser._id.toString()
+  res.end()
+})
 
+//delete if user leaves
+app.get("/deleteactive", async (req, res) => {
+  const deletedUser = await UserModelActive.findOneAndDelete({ _id: req.session.active });
+  res.end()
+})
+
+//get all active
+app.get("/getactive", async (req, res) => {
+  const data = await UserModelActive.find({})
+  res.send(data)
+})
 
 //register
 app.post("/createUser", async (req, res) => {
