@@ -14,6 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json({limit: '50mb'}))
 require('dotenv').config()
 const RAND = process.env.RAND
+const stripe = require("stripe")(process.env.STRIPE_SECRET_TEST)
 mongoose.connect(RAND)
 const MongoStore = require('connect-mongodb-session')(session)
 let sessionStore = new MongoStore({
@@ -55,6 +56,7 @@ io.on('connection', (socket) => {
     console.log(matchmake.size)
     if (matchmake.size >= 2){
       const keysArray = Array.from(matchmake.keys())
+      console.log(keysArray)
       const first = keysArray[0]
       const second = keysArray[1]
       Axios.get('http://localhost:2567/hello_world').then((response) => {
@@ -67,6 +69,17 @@ io.on('connection', (socket) => {
         console.log(matchmake.size)
       })
     }
+  })
+  socket.on('leavematchmaking', (data) => {
+    //console.log(data, Array.from(matchmake.keys())[0])
+    let id = data.data
+    for (const key of matchmake.keys()) {
+      if (key.data === id) {
+        matchmake.delete(key)
+      }
+    }
+    //matchmake.delete({data: datas, name: names, pic: pict})
+    console.log(matchmake.size)
   })
   socket.on('register', ({userId, status}) => {
     io.emit('live')
@@ -233,6 +246,40 @@ app.get("/getqr", async (req, res) => {
   }
 })
 
+//payment
+app.post("/payment", async (req, res) => {
+  let {amount, id} = req.body
+  try {
+    const payment = await stripe.paymentIntents.create({
+      amount,
+      currency: "USD",
+      description: "Spatlua company",
+      payment_method: id,
+      confirm: true,
+      return_url: "http://localhost:3000/gamefuture"
+    })
+    console.log("Payment", payment)
+    res.json({
+      message: "Payment successful",
+      success: true
+    })
+  } catch (error) {
+    console.log("Error", error)
+    res.json({
+      message: "Payment failed",
+      success: false
+    })
+  }
+})
+
+app.post("/changename", async (req, res) => {
+  let {username, id} = req.body
+  let user = await UserModel.findById(id)
+  user.username = username
+  req.session.userName = username
+  await user.save()
+  res.end()
+})
 //sign out
 app.get("/signout", async (req, res) => {
   console.log("signout------------")
