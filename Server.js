@@ -7,6 +7,7 @@ const cors = require('cors')
 const mongoose = require('mongoose')
 const UserModel = require("./models/Users")
 const UserModelActive = require("./models/ActiveUsers")
+const UserModelMatch = require("./models/Games")
 const pako = require('pako')
 const Axios = require('axios')
 app.set("trust proxy", 1)
@@ -62,8 +63,8 @@ io.on('connection', (socket) => {
       Axios.get('http://localhost:2567/hello_world').then((response) => {
         const firstsocket = matchmake.get(first)
         const secondsocket = matchmake.get(second)
-        firstsocket.emit('matched', {data: response.data.roomId, opponent: second.name, this: first.pic, other: second.pic})
-        secondsocket.emit('matched', {data: response.data.roomId, opponent: first.name, this: second.pic, other: first.pic})
+        firstsocket.emit('matched', {data: response.data.roomId, opponent: second.name, this: first, other: second})
+        secondsocket.emit('matched', {data: response.data.roomId, opponent: first.name, this: second, other: first})
         matchmake.delete(first)
         matchmake.delete(second)
         console.log(matchmake.size)
@@ -154,6 +155,18 @@ app.get("/getUsers", async (req, res, next) => {
   res.send(data)
 })
 
+//store game to db
+app.post("/postmatch", async (req, res) => {
+  const game = req.body
+  const newGame = new UserModelMatch(game)
+  await newGame.save()
+  res.end()
+})
+
+app.get("/getmatch", async (req, res) => {
+  const data = await UserModelMatch.find({})
+  res.send(data)
+})
 //is active user
 app.post("/isactive", async (req, res) => {
   const user = req.body

@@ -19,5 +19,5 @@ const UserSchema = new mongoose.Schema({
     }
 })
 
-const UserModelActive = mongoose.model("MatchHistory", UserSchema)
-module.exports = UserModelActive
+const UserModelMatch = mongoose.model("MatchHistory", UserSchema)
+module.exports = UserModelMatch
